@@ -1,0 +1,118 @@
+{% extends "./base.html" %}
+{% load bootstrap4 %}
+
+{% block content %}
+{% if user.is_authenticated %}
+
+<script id="user-id" type="application/json">
+    {{ user.id|safe }}
+</script>
+<script id="myprofile" type="application/json">
+    {{ my_profile_form.status|safe }}
+</script>
+<br />
+{% if who.username == user.username %}
+<script>
+    
+    const user_id = JSON.parse(document.getElementById('user-id').textContent);
+    const mystatus = JSON.parse(document.getElementById('myprofile').textContent);
+    const ConnectSocket = new WebSocket('ws://'+ window.location.host+ '/ws/connect/'+ user_id + '/');
+  
+    ConnectSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        console.log(data);
+        const now = new Date().toLocaleString('fr-FR', { 
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }).replace(',', '');
+        if (mystatus == "1") {
+            document.querySelector('#updates-box').innerHTML += `<p>[${now} - ${data.course.title}] a new document <a href="${data.material}" target="_blank">${data.doc_name}</a> has been added.</p>`;
+        } else {
+            document.querySelector('#updates-box').innerHTML += `<p>[${now}] ${data.student.first_name} ${data.student.surname} enrolled to ${data.course.title}</p>`;
+        }
+        
+    };
+            
+    ConnectSocket.onclose = function(e) {
+        console.error('Connect socket closed unexpectedly');
+    };
+
+    function loadUpdate() {
+        const updateTable = document.getElementById("updates-box");
+        fetch(`/api/material/${encodeURIComponent(user_id)}/`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            data.forEach(material => {
+                console.log(material);
+                updateTable.innerHTML += `<p>[${material.course_info.title}] a new document <a href="${material.material}" target="_blank">${material.document_name}</a> has been added.</p>`;
+            });
+        })
+        .catch(error => console.error("Error while loading the course material :", error));
+    }
+
+    function loadUpdateEnrol() {
+        const updateTable = document.getElementById("updates-box");
+        let params = new URLSearchParams({
+            user: user_id
+        });
+        fetch(`/api/enrol/${encodeURIComponent(user_id)}/`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            data.forEach(enrol => {
+                console.log(enrol);
+                updateTable.innerHTML += `<p>${enrol.student_info.first_name} ${enrol.student_info.surname} enrolled to ${enrol.course_info.title}</p>`;
+            });
+        })
+        .catch(error => console.error("Error while loading the course enrol :", error));
+    }
+
+</script>
+
+<h2>Hello {{ who.username }} </h2>
+<form action="{% url 'home' %}" method="post"  class="form">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <input type="submit" value="Comment">
+</form>
+{% else %}
+<p style="display:inline-block;">
+    <img src= {{ profile_form.image.url }}  id="logo"  alt="dna logo" width="150px" height="150px">
+    <a>    Welcome to {{ who.username }}'s profile</a>
+</p>
+</br>
+{% endif %}
+<h2>Comments :</h2>
+    {% for comment in comments %}
+        <div class="comment-box">
+            {{ comment.who }} - {{ comment.date_message|date:"d M Y H:i" }}
+            <strong><p>{{ comment.message }}</p></strong>
+        </div>
+    {% empty %}
+        <p>No comment posted yet.</p>
+    {% endfor %}
+<h2>Updates :</h2>
+    <div id="updates-box">
+
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            loadUpdate();
+        });
+        document.addEventListener("DOMContentLoaded", function () {
+            loadUpdateEnrol();
+        });
+    </script>
+{% endif %}
+{% endblock%}

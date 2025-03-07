@@ -1,0 +1,59 @@
+{% include "./headers.html" %}
+{% include "./title.html" %}
+
+<script id="user-id" type="application/json">
+  {{ user.id|safe }}
+</script>
+
+<script id="authenticated" type="application/json">
+  {{ user.is_authenticated|safe }}
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const courseTable = document.getElementById("course-table");
+      const is_authenticated_user = document.getElementById("authenticated").textContent.trim() === "True";
+      function loadCourses() {
+          fetch("/api/courses/") 
+              .then(response => response.json())
+              .then(data => {
+                  courseTable.innerHTML = ""; 
+                  data.forEach(course => {
+                      const row = document.createElement("tr");
+                      if (is_authenticated_user == true) {
+                        row.innerHTML = `<td><a href="/course/${course.id}">${course.title}</a></td>`;
+                      } else {
+                        row.innerHTML = `<td>${course.title}</td>`;
+                      }
+                      
+                      courseTable.appendChild(row);
+                  });
+              })
+              .catch(error => console.error("Error while loading the courses :", error));
+      }
+  
+      loadCourses();
+  });
+  </script>
+
+<div class="container-fluid">
+
+    <div class="row">
+      {% block courseList %}
+      <div class="col-3" id="course_list">
+        <h1>Available courses</h1>
+        <table>
+          <tr><th>Course Title</th></tr>
+          <tbody id="course-table">
+            
+          </tbody>
+        </table>
+      </div>
+      {% endblock%}
+      
+      <div  class="col-8" class="content">
+        {% block content %}Didn't render content{% endblock %}
+      </div>
+    </div>
+    
+  </div>

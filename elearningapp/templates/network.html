@@ -1,0 +1,88 @@
+{% extends "./base.html" %}
+{% load bootstrap4 %}
+
+{% block content %}
+{% if user.is_authenticated %}
+
+<script id="role-data" type="application/json">
+    {{ role }}
+</script>
+
+<script>
+
+    function getCsrfToken() {
+        let csrfToken = null;
+        const csrfCookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+        if (csrfCookie) {
+            csrfToken = csrfCookie.split('=')[1];
+        }
+        return csrfToken;
+    }
+
+    function blockUser(userId) {
+        fetch(`/api/blockuser/${userId}/`, {
+            method: "PUT", 
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCsrfToken(), 
+            },
+            body: JSON.stringify({ active: 0 }) 
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Blocked user :", data);
+            window.location.reload();
+        })    
+        .catch(error => console.error("Error :", error));
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const courseTable = document.getElementById("people-table");
+        const role = JSON.parse(document.getElementById("role-data").textContent);
+
+        function loadPeople() {
+            fetch("/api/social_network/") 
+                .then(response => response.json())
+                .then(data => {
+                    courseTable.innerHTML = ""; 
+                    data.forEach(personrecord => {
+                        const row = document.createElement("tr");
+                        let blockIcon = "";
+                        if (personrecord.status !== "2" && role == "teacher") { 
+                            if (personrecord.active == true ) { 
+                                blockIcon = `<button onclick="blockUser(${personrecord.user.id})">
+                                                <img src="/images/images/blockicon.jpg" alt="block the user" style="width:22px;height:22px;">
+                                            </button>`;
+                                        } else {
+                                            blockIcon = `<button onclick="blockUser(${personrecord.user.id})">
+                                                <img src="/images/images/unblock.png" alt="unblock the user" style="width:22px;height:22px;">
+                                            </button>`;
+                                        }
+                        }
+                        row.innerHTML = `<td>${blockIcon}
+                            <a href="/${personrecord.user.id}">${personrecord.first_name} ${personrecord.surname}</a></td>`;
+                        courseTable.appendChild(row);
+                    });
+                })
+                .catch(error => console.error("Error while loading the users :", error));
+        }
+    
+        loadPeople();
+    });
+</script>
+  
+<br />
+<div class="col-4" id="course_list">
+    <h1>People list</h1>
+    <table>
+      <tr><th>Everyone</th></tr>
+      <tbody id="people-table">
+        
+      </tbody>
+    </table>
+    </div>
+{% else %}
+<input type="text" name="textfield">
+<button type="submit">Comment</button>
+{% endif %}
+{% endblock%}

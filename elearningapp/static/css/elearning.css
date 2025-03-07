@@ -1,0 +1,100 @@
+body {
+    font-family: Sans-Serif;
+    margin: 0px;
+    border: 0px;
+    padding: 0px;
+  }
+  
+  #application_title
+  {
+      display: inline;
+  }
+  
+  #logo{
+      height: 50px;
+      width: 50px
+  }
+  
+  #header{
+      width: 100%;
+      background-color: #3caea3;
+  }
+  
+  #navigation{
+      width: 100%;
+      background-color: #20639b;
+      color: #ffffff;
+      padding: 2px;
+  }
+  
+  #application_title
+  {
+      display: inline;
+      vertical-align: middle;
+  }
+  
+  #logo{
+      vertical-align: middle;
+      height: 50px;
+      width: 50px
+  }
+  
+  #header{
+      vertical-align: middle;
+      width: 100%;
+      background-color: #3caea3;
+  }
+  
+  a { text-decoration: none; }
+  
+  .nav_link {
+      color: white;
+  }
+  
+  .nav-link {
+     color: white;
+  }
+  
+  .navbar{
+    padding: 0px;
+  }
+  
+  #content{
+      padding-left: 10px;
+      float: left;
+  }
+  
+  
+  #gene_list{
+      padding-left: 10px;
+      padding-right: 20px;
+      float: left;
+      border-right: 2px dashed black;
+  }
+  
+  #footer{
+      padding-left: 10px;
+      width: 100%;
+      float: left;
+  }
+ 
+
+  .no-display {
+      display: none !important;
+  }
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #ffcc00;
+    color: black;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    display: none;
+}
+
+.hidden {
+    display: none;
+}

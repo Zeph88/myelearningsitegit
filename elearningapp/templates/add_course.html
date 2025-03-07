@@ -1,0 +1,13 @@
+{% extends "./base.html" %}
+{% load bootstrap4 %}
+
+{% block content %}
+<h2>Current EC Names</h2>
+<br />
+<h2>Add New Course</h2>
+<form action="/api/create_course/" method="post"  class="form">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <input type="submit" value="Submit">
+</form>
+{% endblock %} 

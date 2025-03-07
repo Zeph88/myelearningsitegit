@@ -1,0 +1,15 @@
+{% load bootstrap4 %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Elearning platform">
+    <meta name="keywords" content="HTML,elearning,courses,advanced,web,development">
+    <meta name="author" content="J.Chaumont">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    {% bootstrap_css %}
+    {% bootstrap_javascript jquery='full' %}
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/elearning.css' %}?v={{ STATIC_VERSION }}">
+</head>
+<body>

@@ -1,0 +1,47 @@
+<nav class="navbar navbar-expand-md sticky-top flex-column">
+    <div class="w-100 d-flex">
+      <div class="navbar-header" id="header">
+        {% if user.is_authenticated and my_profile_form.image.url %}
+        <img src= {{ my_profile_form.image.url }}  id="logo"  alt="dna logo" width="50px" height="50px">
+        {% else %}
+        <img src="https://img.freepik.com/vecteurs-libre/communaute-mondiale-e-learning_24877-60109.jpg"  id="logo"  alt="dna logo" width="50px" height="50px">
+        {% endif %}
+        <h1 id="application_title">Elearning Platform</h2>
+      </div>
+    </div>
+  
+    <div class="w-100 d-flex">
+     <ul class="navbar-nav mr-auto" id="navigation">
+        <li class="nav-item active">
+         <a class="nav-link" href="{% url 'home' %}" {{ user.id }} >Home <span class="sr-only">(current)</span></a>
+         </li>
+         {% if profile_form.status == "2" %}
+         <li class="nav-item active">
+         <a class="nav-link" href="/create_course/">Course management <span class="sr-only">(current)</span></a>
+         </li>
+         <li class="nav-item active">
+        <a class="nav-link" href="/social_network/">Social Network <span class="sr-only">(current)</span></a>
+        </li>
+        {% endif %}
+        {% if user.is_authenticated %}
+        <li class="nav-item active">
+          <a class="nav-link" href="#"> : hello {{ user.username }} <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="{% url 'logout' %}"> : Logout<span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/change_password/"> : Change password <span class="sr-only">(current)</span></a>
+        </li>
+        {% else %}
+        <li class="nav-item active">
+          <a class="nav-link" href="../register/"> : Register <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="../login/"> Log In <span class="sr-only">(current)</span></a>
+        </li>
+        {% endif %}
+     </ul>
+     </div>
+  </nav>
+  

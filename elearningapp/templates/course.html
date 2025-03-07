@@ -1,0 +1,301 @@
+{% extends "./base.html" %}
+
+{% block content %}
+{% if user.is_authenticated %}
+
+<script id="user-data" type="application/json">
+    {{ current_user|safe }}
+</script>
+<script id="profile-data" type="application/json">
+    {{ profile.id|safe }}
+</script>
+<script id="conversation-data" type="application/json">
+    {{ conversations|safe }}
+</script>
+<script id="feedback-data" type="application/json">
+    {{ enrolinfo|safe }}
+</script>
+<script id="room-name" type="application/json">
+    {{ course|safe }}
+</script>
+{{ profile.status|json_script:"role" }}
+{{ enrolled|json_script:"enrolled" }}
+
+<script>
+    const roomData = JSON.parse(document.getElementById('room-name').textContent);
+    const roomName = roomData[0].id;
+    const teacher = roomData[0].teacher;
+    const userData = JSON.parse(document.getElementById('user-data').textContent);
+    const profileId = JSON.parse(document.getElementById('profile-data').textContent);
+    const chatSocket = new WebSocket('ws://'+ window.location.host+ '/ws/'+roomName+ '/');
+    const FeedbackSocket = new WebSocket('ws://'+ window.location.host+ '/ws/feedback/'+roomName+ '/');
+    const role = JSON.parse(document.getElementById('role').textContent);
+    console.log(profileId);
+    let enrolled = JSON.parse(document.getElementById('enrolled').textContent);
+    console.log(enrolled)
+</script>
+
+<script>
+
+    function getCsrfToken() {
+        let csrfToken = null;
+        const csrfCookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+        if (csrfCookie) {
+            csrfToken = csrfCookie.split('=')[1];
+        }
+        return csrfToken;
+    }
+
+    function ReflectEnrolStatus(updated_enrolled) {
+
+        const cancel_button = document.getElementById("cancel-enrol");
+        const enrol_button = document.getElementById("enrol");
+        const feedback_input = document.getElementById("feedback-input");
+        const feedback_submit = document.getElementById("feedback-submit");
+        const feedback_box = document.getElementById("feedback-box");
+
+        if (updated_enrolled) {
+            cancel_button.style.visibility='visible';
+            enrol_button.style.visibility='hidden';
+            feedback_input.style.visibility='visible';
+            feedback_submit.style.visibility='visible';
+            feedback_box.style.visibility='visible';
+        } else {
+            cancel_button.style.visibility='hidden';
+            enrol_button.style.visibility='visible';
+            feedback_input.style.visibility='hidden';
+            feedback_submit.style.visibility='hidden';
+            feedback_box.style.visibility='hidden';
+        }
+    }
+
+    function Enrol(userId, courseId) {
+        let params = new URLSearchParams({
+            user: userId,
+            course: courseId
+        });
+        fetch(`/api/enrol/?${params.toString()}`, {
+            method: "POST", 
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCsrfToken(), 
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Enrol :", data);
+            ReflectEnrolStatus(true);
+        })   
+        .catch(error => console.error("Error :", error));
+    }
+
+    function Cancel(userId, courseId) {
+        let params = new URLSearchParams({
+            user: userId,
+            course: courseId
+        });
+        fetch(`/api/enrol/?${params.toString()}`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRFToken": getCsrfToken(), 
+            }
+        })
+        .then(response => {
+            if (response.status === 204) {
+                console.log("No Content");
+                ReflectEnrolStatus(false);
+                return; 
+            }
+            return response.json(); 
+        })
+        .then(data => {
+            console.log("Cancel :", data);
+        })   
+        .catch(error => console.error("Error :", error));
+    }
+
+    function loadMaterial(room) {
+        const materialTable = document.getElementById("material-table");
+        fetch(`/api/material/?room=${encodeURIComponent(room)}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            materialTable.innerHTML = ""; 
+            data.forEach(material => {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td><a href="${material.material}" download="${material.document_name}">${material.document_name}</a></td>`;
+                materialTable.appendChild(row);
+            });
+        })
+        .catch(error => console.error("Error while loading the course material :", error));
+    }
+
+
+    FeedbackSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const now = new Date().toLocaleString('fr-FR', { 
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }).replace(',', '');
+        document.querySelector('#feedback-box').innerHTML += `<p>[${now} ${data.user}] ${data.feedback}</p>`;
+    };
+            
+    FeedbackSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const now = new Date().toLocaleString('fr-FR', { 
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }).replace(',', '');
+        document.querySelector('#chat-log').value += ("[" + now + " " + data.user +"] " +data.message + '\n');
+    };
+            
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+            
+
+</script>
+
+<div class="container-fluid">
+    <div class="row">
+        <div  class="col-md-6 content text-center" class="content">
+            <br />
+            <textarea id="chat-log" cols="60" rows="20"></textarea><br>
+            <input id="chat-message-input" type="text" size="60"><br>
+            <input id="chat-message-submit" type="button" value="Send">
+            
+            <script>
+                
+                try {
+                    const conversationData = JSON.parse(document.getElementById('conversation-data').textContent);
+
+                    const chatLog = document.querySelector('#chat-log');
+                    conversationData.forEach(msg => {
+                        chatLog.value += `[${msg.timestamp} ${msg.user}] ${msg.message}\n`;
+                    });
+                } catch (error) {
+                    console.error("Error on 'conversation-data':", error);
+                    console.error("Content :", document.getElementById('conversation-data').textContent);
+                }
+                
+                document.querySelector('#chat-message-input').focus();
+                document.querySelector('#chat-message-input').onkeyup = function(e) {
+                    if (e.keyCode === 13) {  // enter, return
+                        document.querySelector('#chat-message-submit').click();
+                    }
+                };
+
+                document.querySelector('#chat-message-submit').onclick = function(e) {
+                    const messageInputDom = document.querySelector('#chat-message-input');
+                    const message = messageInputDom.value;
+                    chatSocket.send(JSON.stringify({
+                        'user' : profileId,
+                        'message': message
+                    }));
+                    messageInputDom.value = '';
+                };
+            </script>
+        </div>
+        <div  class="col-md-6 content text-center" class="content">
+            
+            <h2>test</h2>
+            
+            {% if profile.status == "2" %}
+            
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    let roomName = roomData[0].id;
+                    document.getElementById("id_course").value = roomName;
+                });
+            </script>
+            <form id="material_form" method="post" action="/api/material/" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ material_form.as_p }}
+                <button type="submit">Add Document</button>
+            </form>
+  
+            {% else %}
+                
+                    <button id="enrol" onclick="Enrol(profileId, roomName)">
+                            <img src="/images/images/unblock.png" alt="enrol to course" style="width:22px;height:22px;">
+                    </button>
+                
+                    <button id="cancel-enrol" onclick="Cancel(profileId, roomName)">
+                        <img src="/images/images/blockicon.jpg" alt="cancel participation" style="width:22px;height:22px;">
+                    </button>
+
+                    <br />
+                    <br />
+                    <input id="feedback-input" type="text" size="60"><br>
+                    <input id="feedback-submit" type="button" value="Leave a feedback">
+                    <div id="feedback-box">
+                        <p>
+
+                        </p>
+                    </div>
+
+                    <script>
+
+                        try {
+                            const feedbackData = JSON.parse(document.getElementById('feedback-data').textContent);
+                            const feedbackLog = document.querySelector('#feedback-box');
+                            feedbackData.forEach(msg => {
+                                feedbackLog.innerHTML += `<p>[${msg.student}] ${msg.feedback}</p>`;
+                            });
+                        } catch (error) {
+                            console.error("Error on 'feedback-data':", error);
+                            console.error("Content :", document.getElementById('feedback-data').textContent);
+                        }
+
+                        document.querySelector('#feedback-input').focus();
+                        document.querySelector('#feedback-input').onkeyup = function(e) {
+                            if (e.keyCode === 13) {  // enter, return
+                                document.querySelector('#feedback-submit').click();
+                            }
+                        };
+                                
+                        document.querySelector('#feedback-submit').onclick = function(e) {
+                            const messageInputDom = document.querySelector('#feedback-input');
+                            const feedback = messageInputDom.value;
+                            FeedbackSocket.send(JSON.stringify({
+                                'user' : userData,
+                                'feedback': feedback
+                            }));
+                            messageInputDom.value = '';
+                        };
+                    </script>
+                
+            {% endif %}
+            <table>
+                <tr><th>Material available for the course</th></tr>
+                <tbody id="material-table">
+                  
+                </tbody>
+            </table>
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    loadMaterial(roomName);
+                });
+            </script>
+            {% if profile.status == "1" %}
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    ReflectEnrolStatus(enrolled);
+                });
+            </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock%}
